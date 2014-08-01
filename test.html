@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Secure-passphrase/lib/js Tester</title>
+  <meta content="passphrasejs tester" name="description">
+  <meta content="passphrasejs-lib" name="author">
+
+  <style>
+    body {margin:0; padding:0.5em 3em; 
+         font-family:"Open Sans",sans-serif; color:#555;}
+    textarea {width:100%; height:7em; font-size:130%;}
+    .title {font-size:140%;}
+  </style>
+
+  <script src="passphrase.js"></script>
+  <script>
+    Passphrase.seqKey = function( keylen, dictionary ) {
+      keylen = keylen ? keylen : 32;
+      dictionary = dictionary ? dictionary : Passphrase.defaultDictionary;
+      var bitsperword = Passphrase.calcBitsPerWord( dictionary );
+      var key = [], i, n, words = Math.floor( (keylen*8) / bitsperword );
+      for( i=0; i<keylen; i++ ) key.push( 0 );
+      for( i=0,n=0; i<words; i++,n++,n=n<dictionary.length?n:0 )
+        Passphrase.packKeyBits( key, n, i*bitsperword, bitsperword );
+      return key;
+    }
+    Passphrase.testDict2 = ["no","yes"];
+    Passphrase.testDict3 = ["no","yes","Not Used"];
+    Passphrase.testDict4 = ["bat","cat","dog","eel"];
+    Passphrase.testDict7 = ["bat","cat","dog","eel","NU1","NU2","NU3"];
+    Passphrase.testDict8 = ["bat","cat","dog","eel","fig","gum","hop","ivy"];
+    Passphrase.testDictDefault = Passphrase.defaultDictionary;
+
+    var hammerrunning = false;
+    function hammerTest() {
+      function next( n ) {
+        gete( 'hammercount' ).innerHTML = n+1;
+        var p = Passphrase.random( getv('keylen'), dict );
+        putv( 'pass', p );
+        //  make sure round-trip conversion works
+        tokey();
+        fromkey();
+        if (getv('pass') != p)
+          throw new Error( "BUG: round-trip conversion failure" );
+        p = p.split( ' ' );
+        //  tally each word 
+        //    (ignore final word of pass; obtained from zero padded trailing key bits)
+        for( var i=0; i<(p.length-1); i++ )
+          dictmap[p[i]]++;
+        n++;
+        if (n < 100000)
+          setTimeout( function(){next(n)}, 1 );
+        else
+          putv( 'pass', JSON.stringify(dictmap,null,2) ),
+          hammerrunning = false;
+      }
+      if (hammerrunning)
+        return;
+      hammerrunning = true;
+      var dict = getdict();
+      var dictmap = {};
+      for( var i=0; i<dict.length; i++ )
+        dictmap[dict[i]] = 0;
+      next( 0 );
+    }
+
+    function gete(id){return document.getElementById(id);}
+    function getc(id){return document.getElementById(id).checked;}
+    function setc(id,c){document.getElementById(id).checked=c;}
+    function getv(id){return document.getElementById(id).value;}
+    function putv(id,v){document.getElementById(id).value = v;}
+    function getdict() {
+      var d = 'Default';
+      if (getc('test2')) d = '2'; 
+      else if (getc('test4')) d = '4'; 
+      else if (getc('test8')) d = '8';
+      return Passphrase['testDict'+d];}
+    function setdict(d) {
+      setc('test2',d=='2');
+      setc('test4',d=='4');
+      setc('test8',d=='8');
+      setc('testdefault',d=='Default');}
+    function tokey() {
+      var p = getv( 'pass' );
+      var iskey = p.replace( /[a-f0-9+\/]/ig, "" ) == '';
+      putv( 'pass', iskey ? p : 
+                      Passphrase.keyToHex(Passphrase.toKey(p,getv('keylen'),getdict())) );
+    }
+    function fromkey() {
+      var p = getv( 'pass' );
+      var ispass = p.replace( /[a-f0-9+\/]/ig, "" ) != '';
+      putv( 'pass', ispass ? p : Passphrase.fromKey(Passphrase.keyFromHex(p),getdict()) );
+    }
+  </script>
+</head>
+
+<body>
+
+
+<br/>
+<br/>
+
+
+<span class="title">Secure-passphrase/lib/js Tester</span>
+
+
+
+<br/>
+<br/>
+<br/>
+<br/>
+Key length (# bytes): <input id="keylen" value="32"/>
+<br/>
+<br/>
+<button onclick="putv('pass',Passphrase.random(getv('keylen'),getdict()));">
+CREATE RANDOM PASSPHRASE</button>
+<br/>
+<br/>
+<br/>
+<textarea id="pass"></textarea>
+<br/>
+<br/>
+<br/>
+<button onclick="tokey();">
+   PASSPHRASE TO KEY</button>
+<button onclick="fromkey();">
+   KEY TO PASSPHRASE</button>
+<br/>
+<br/>
+<br/>
+<input id="test2" type="radio" onclick="setdict('2')"/>
+Use 2 word test dictionary
+<br/>
+<input id="test4" type="radio" onclick="setdict('4')"/>
+Use 4 word test dictionary
+<br/>
+<input id="test8" type="radio" onclick="setdict('8')"/>
+Use 8 word test dictionary
+<br/>
+<input id="testdefault" type="radio" onclick="setdict('Default')" checked/>
+Use default dictionary
+<br/>
+<br/>
+<br/>
+<button onclick="putv('pass',Passphrase.keyToHex(Passphrase.seqKey(getv('keylen'),getdict())));">
+CREATE SEQUENTIAL TEST KEY, eg: 0,1,2,3,0,1,2,3,...</button>
+<br/>
+<br/>
+<br/>
+<button onclick="hammerTest();">HAMMER TEST 
+(GEN 100,000 PHRASES, SHOW RESULTING WORD USE TALLIES)</button>
+ &nbsp; <span id="hammercount"></span>
+<br/>
+<br/>
+<br/>
+<br/>
+
+
+<p>
+<a href="https://github.com/secure-passphrase">source</a>,
+<a href="passphrase.js">doc</a>,
+<a href="dictionary.html">custom dictionary creation tool</a>
+</p>
+
+<br/>
+<br/>
+
+
+</body>
+</html>
+
+
