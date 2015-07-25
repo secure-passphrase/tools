@@ -7,27 +7,27 @@
   <meta content="Secure passphrase generator" name="description">
   <meta content="secure-passphrase" name="author">
   <style>
-    body {margin:0; padding:0.5em 3em; 
-         font-family:"Open Sans",sans-serif; color:#555;}
-    textarea {width:100%; height:7em; font-size:130%;}
-    .title {font-size:140%;}
+    body {margin:0; padding:4% 4%; font-family:"Open Sans",sans-serif; color:#555; font-size:97%;}
+    div {margin:0; padding:0; border:1px solid #ccc;}
+    textarea {margin:0; border:0; width:100%; height:7em; font-size:130%;}
+    h1 {font-size:140%; font-weight:normal; margin:0;}
+    @media all and (max-width:1024px) {body{font-size:90%;} button{display:block;}}
+    @media all and (max-width:600px) {body{font-size:80%;} button{display:block;}}
   </style>
-  <script src="passphrase.js"></script>
+  <script src="passphrase011.js"></script>
 </head>
 
 <body>
 
 
-<br/>
-<br/>
-<br/>
-
-
-<div class="title">Secure Passphrase Generator</div>
-Create passphrase from dictionary of common english words
+<h1>Secure Passphrase Generator</h1>
+Create passphrase from dictionary of common short english words
 
 
 <br/>
+<br/>
+<br/>
+<a href="bitcoin.html">Convert bitcoin key/address to passphrase</a>
 <br/>
 <br/>
 <br/>
@@ -37,18 +37,17 @@ Key length (# bytes): <input id="keylen" value="32"/>
 <br/>
 <br/>
 <button onclick="document.getElementById('pass').value = 
-                 Passphrase.random(document.getElementById('keylen').value);">CREATE 
-    RANDOM PASSPHRASE</button>
+                 Passphrase.random(document.getElementById('keylen').value);">
+    GEN RANDOM PASSPHRASE</button>
 <br/>
 <br/>
-<textarea id="pass"></textarea>
+<div><textarea id="pass"></textarea></div>
 
 <br/>
 
 <p>
 This app does not transmit or save data.  Generated phrases should be written down 
 and kept in a safe place.
-<br/>
 <br/>
 Recommended: 16 byte (128 bit) key length for file encryption, 
 32 byte (256 bit) key length for bitcoin brainwallets.
@@ -60,26 +59,13 @@ These passphrases are suitable for bitcoin "brainwallets".
 -->
 <br/>
 <br/>
-For added security, app can be 
-<a href="https://github.com/secure-passphrase" class="">downloaded</a>
-to a thumb drive/SD card and 
+For added security, this page can be 
+saved to a thumb drive/SD card and 
 run on an air-gapped (quarantined) device.
 <br/>
 <br/>
-<br/>
-<i>
-<a href="https://github.com/secure-passphrase" class="">Source code, 
-other passphrase tools</a>
-<br/>
-Dictionary extracted from Alan Beale's
-<a href="http://wordlist.aspell.net/12dicts-readme/">2 of 12 public domain dictionary</a>
-</i></p>
-
-
-<br/>
-<br/>
-<br/>
-<br/>
+<a href="https://github.com/secure-passphrase" class="">Project archive, 
+other secure passphrase tools</a>
 
 
 </body>
