@@ -9,4 +9,4 @@ Tester:
 Custom dictionary creation tool:
     http://secure-passphrase.github.io/tools/dictionary.html
 
-See lib repository for documenation.
+See lib repository for documentation.
