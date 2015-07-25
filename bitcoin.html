@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Convert Bitcoin Key or Address from/to Passphrase</title>
+  <meta content="Convert Bitcoin Key or Address from/to Passphrase" name="description">
+  <meta content="secure-passphrase" name="author">
+  <style>
+    body {margin:0; padding:4% 4%; font-family:"Open Sans",sans-serif; color:#555; font-size:97%;}
+    div,button {margin:0; padding:0;}
+    div {border:1px solid #ccc;}
+    button {margin-bottom:0.2em;}
+    textarea {margin:0; border:0; width:100%; height:7em; font-size:130%;}
+    h1 {font-size:140%; font-weight:normal; margin:0;}
+    #hammerstart {margin-right:2em;}
+    @media all and (max-width:1024px) {body{font-size:90%;} button{display:block;} #hammerstart{display:inline-block;}}
+    @media all and (max-width:600px) {body{font-size:80%;} button{display:block;} #hammerstart{display:inline-block;}}
+  </style>
+  <script src="bitcoinjs-min.js"></script>
+  <script src="passphrase011.js"></script>
+  <script>
+    /***  additions to Passphrase for bitcoin keys/addresses  ***/
+    Passphrase.keyToBitcoin = function(key) {
+        var s;
+        if (key.length == 20)
+            s = (new Bitcoin.Address(key)).toString();
+        else
+        if (key.length == 32)
+            s = (new Bitcoin.ECKey(key)).getExportedPrivateKey();
+        else
+            throw new Error("Invalid bitcoin key or address length: " + k.length + " [" + key + "]");
+        return s;
+    }
+    Passphrase.keyFromBitcoin = function(bstr) {
+        if (!bstr.length)
+            throw new Error("Bitcoin key or address required");
+        var k;
+        if (bstr.length < 50)
+            k = new Bitcoin.Address(bstr).hash;
+        else
+            k = Bitcoin.ECKey.decodeString(bstr);
+        if (k.length != 20 && k.length != 32)
+            throw new Error("Invalid bitcoin key or address length: " + k.length + " [" + bstr + "]");
+        return k;
+    }
+    Passphrase.fromBitcoin = function(key, dictionary) {
+        return Passphrase.fromKey(Passphrase.keyFromBitcoin(key), dictionary);
+    }
+    Passphrase.toBitcoin = function(pass, dictionary) {
+            var key;
+            if ((Passphrase.calcBitsPerWord(dictionary) * Passphrase.words(pass).length) < (32 * 8))
+                key = Passphrase.toKey(pass, 20, dictionary);
+            else
+                key = Passphrase.toKey(pass, 32, dictionary);
+            return Passphrase.keyToBitcoin(key);
+        }
+    /******/
+
+    function gete(id) {
+        return document.getElementById(id);
+    }
+
+    function seterr(em) {
+        gete('err').innerHTML = em;
+    }
+
+    function key2phrase() {
+        seterr('');
+        try {
+            var k = Passphrase.clean(gete('inp').value, {
+                caseSensitive: true
+            });
+            gete('inp').value = Passphrase.fromBitcoin(k);
+        } catch (e) {
+            seterr(e.toString());
+        }
+    }
+
+    function phrase2key() {
+        seterr('');
+        try {
+            gete('inp').value = Passphrase.toBitcoin(Passphrase.clean(gete('inp').value));
+        } catch (e) {
+            seterr(e.toString());
+        }
+    }
+
+    function randkey() {
+        seterr('');
+        try {
+            var eck = new Bitcoin.ECKey();
+            gete('inp').value = eck.getExportedPrivateKey();
+            seterr("Address: " + eck.getBitcoinAddress());
+        } catch (e) {
+            seterr(e.toString());
+        }
+    }
+    var hammerrunning = false;
+
+    function hammerTest() {
+        function nextpass(n) {
+            var eck = new Bitcoin.ECKey();
+            var k = eck.getExportedPrivateKey();
+            //  make sure round-trip conversion works
+            var p = Passphrase.fromBitcoin(k);
+            var ktest = Passphrase.toBitcoin(p);
+            if (ktest != k)
+                throw new Error("Round-trip conversion failure: " + k);
+            var ptest = Passphrase.fromBitcoin(k);
+            if (ptest != p)
+                throw new Error("Round-trip conversion failure: " + k);
+            if (test_addresses) {
+                //  make sure round-trip address conversion works
+                var a = eck.getBitcoinAddress().toString();
+                var ap = Passphrase.fromBitcoin(a);
+                var atest = Passphrase.toBitcoin(ap);
+                if (atest != a)
+                    throw new Error("Round-trip conversion failure: " + a);
+            }
+            //  tally each word 
+            //    (ignore final word of pass; obtained from zero padded trailing key bits)
+            var pwords = p.split(' ');
+            for (var i = 0; i < (pwords.length - 1); i++)
+                dictmap[pwords[i]]++;
+            return p;
+        }
+
+        function nextbatch(n) {
+            var p;
+            for (var i = 0; i < 25 && n < 100000; i++, n++)
+                p = nextpass(n);
+            return {
+                'p': p,
+                'n': n
+            };
+        }
+
+        function next(n) {
+            try {
+                var res = nextbatch(n);
+                n = res.n;
+                var p = res.p;
+                gete('hammercount').innerHTML = n;
+                gete('inp').value = p;
+                if (n < 100000)
+                    setTimeout(function() {
+                        next(n)
+                    }, 1);
+                else
+                    setup('', JSON.stringify(dictmap, null, 2));
+            } catch (e) {
+                gete('hammercount').innerHTML = n;
+                setup(e.toString, '');
+            }
+        }
+
+        function setup(em, tallies) {
+            hammerrunning = !hammerrunning;
+            seterr(em);
+            gete('hammerres').innerHTML = tallies;
+            gete('hammeraddrs').disabled = hammerrunning;
+            gete('hammerstart').disabled = hammerrunning;
+        }
+        if (hammerrunning)
+            return;
+        setup('', '');
+        var test_addresses = gete('hammeraddrs').checked;
+        hammerrunning = true;
+        var dict = Passphrase.defaultDictionary.words;
+        var dictmap = {};
+        for (var i = 0; i < dict.length; i++)
+            dictmap[dict[i]] = 0;
+        next(0);
+    }
+  </script>
+</head>
+
+<body>
+
+
+<h1>Convert Bitcoin Key or Address from/to Passphrase</h1>
+
+
+<br/>
+<br/>
+
+
+Bitcoin key/address or passphrase:
+<br/>
+<div><textarea id="inp"></textarea></div>
+<br/>
+<button onclick="randkey();">RANDOM BITCOIN KEY</button>
+<button onclick="key2phrase()">CONVERT KEY/ADDRESS TO PHRASE</button>
+<button onclick="phrase2key()">CONVERT PHRASE TO KEY/ADDRESS</button>
+<br/>
+<br/>
+<span id="err"></span><br/>
+<br/>
+<br/>
+<button onclick="hammerTest();" id="hammerstart">HAMMER TEST</button>
+<span id="hammercount"></span>
+<br/>
+Gen 100,000 keys, test round trip conversions, tally word use &nbsp;
+<input type="checkbox" id="hammeraddrs">include address conversions</input>
+<br/>
+<br/>
+<pre id="hammerres"></pre>
+
+<br/>
+This app does not transmit or save data.
+For added security, this web page can be 
+saved to a thumb drive/SD card and 
+run on an air-gapped (quarantined) device.
+<br/>
+<a href="https://github.com/secure-passphrase" class="">Project archive, 
+other secure passphrase tools</a>
+
+
+</body>
+</html>
+
+
