@@ -73,7 +73,7 @@
             });
             gete('inp').value = Passphrase.fromBitcoin(k);
         } catch (e) {
-            seterr(e.toString());
+            seterr("Invalid key/address ("+e.toString()+")");
         }
     }
 
@@ -82,7 +82,7 @@
         try {
             gete('inp').value = Passphrase.toBitcoin(Passphrase.clean(gete('inp').value));
         } catch (e) {
-            seterr(e.toString());
+            seterr("Invalid passphrase ("+e.toString()+")");
         }
     }
 
